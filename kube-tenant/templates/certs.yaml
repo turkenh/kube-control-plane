@@ -1,0 +1,98 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: etcd-client-tls
+spec:
+  secretName: etcd-client-tls
+  duration: 9600h # 400d
+  renewBefore: 8760h # 365d
+  commonName: tenant-{{ .Values.tenantID }}
+    - client auth
+  issuerRef:
+    name: etcd-issuer
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: kube-ca
+spec:
+  secretName: kube-ca
+  duration: 9600h # 400d
+  renewBefore: 8760h # 365d
+  commonName: "kubernetes"
+  isCA: true
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: kube-ca-issuer
+spec:
+  ca:
+    secretName: kube-ca
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: kube-apiserver
+spec:
+  secretName: kube-apiserver
+  duration: 9600h # 400d
+  renewBefore: 8760h # 365d
+  commonName: "kube-apiserver"
+  dnsNames:
+    - tenant-kubernetes
+    - tenant-kubernetes.{{ .Release.Namespace }}
+    - tenant-kubernetes.{{ .Release.Namespace }}.svc
+    - tenant-kubernetes.{{ .Release.Namespace }}.svc.cluster.local
+  usages:
+    - server auth
+  ipAddresses:
+    - 127.0.0.1  
+  issuerRef:
+    name: kube-ca-issuer
+    kind: Issuer
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: service-account-keypair
+spec:
+  secretName: service-account-keypair
+  duration: 9600h # 400d
+  renewBefore: 8760h # 365d
+  commonName: "service-account-keypair" 
+  issuerRef:
+    name: kube-ca-issuer
+    kind: Issuer
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: client-kube-controller-manager
+spec:
+  secretName: client-kube-controller-manager
+  duration: 9600h # 400d
+  renewBefore: 8760h # 365d
+  commonName: "system:kube-controller-manager" 
+  issuerRef:
+    name: kube-ca-issuer
+    kind: Issuer
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: client-kubernetes-admin
+spec:
+  secretName: client-kubernetes-admin
+  duration: 9600h # 400d
+  renewBefore: 8760h # 365d
+  commonName: "kube-admin" 
+  organization:
+    - system:masters
+  issuerRef:
+    name: kube-ca-issuer
+    kind: Issuer

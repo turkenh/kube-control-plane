@@ -1,0 +1,8 @@
+# Default values for host-setup.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  repository: "gcr.io/etcd-development/etcd"
+  tag: "v3.3.22"
+  pullPolicy: "IfNotPresent"

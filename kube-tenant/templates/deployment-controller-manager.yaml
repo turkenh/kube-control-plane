@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: tenant-kubernetes
+    role: controller-manager
+  name: tenant-kubernetes-controller-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tenant-kubernetes
+      role: controller-manager
+  template:
+    metadata:
+      labels:
+        app: tenant-kubernetes
+        role: controller-manager
+      name: tenant-kubernetes-controller-manager
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - --cluster-name=tenant-kubernetes
+        - --cluster-signing-cert-file=/etc/creds/kube-ca/tls.crt
+        - --cluster-signing-key-file=/etc/creds/kube-ca/tls.key
+        - --controllers=clusterrole-aggregation,garbagecollector,serviceaccount,serviceaccount-token,namespace
+        - --kubeconfig=/etc/creds/kube-controller-manager/kubeconfig
+        - --root-ca-file=/etc/creds/kube-ca/tls.crt
+        - --service-account-private-key-file=/etc/creds/service-account-keypair/tls.key
+        - --use-service-account-credentials=true
+        - --v=2
+        command:
+        - kube-controller-manager
+        env:
+        - name: KUBERNETES_SERVICE_HOST
+          value: tenant-kubernetes
+        - name: KUBERNETES_SERVICE_PORT
+          value: "6443"
+        image: gcr.io/google-containers/kube-controller-manager:{{ .Values.kubernetesVersion }}
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /healthz
+            port: 10257
+            scheme: HTTPS
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 15
+        name: tenant-kubernetes-controller-manager
+        volumeMounts:
+        - mountPath: /etc/creds/kube-ca
+          name: kube-ca
+          readOnly: true
+        - mountPath: /etc/creds/kube-controller-manager
+          name: kube-controller-manager
+          readOnly: true
+        - mountPath: /etc/creds/service-account-keypair
+          name: service-account-keypair
+          readOnly: true
+      volumes:
+      - name: kube-ca
+        secret:
+          defaultMode: 420
+          secretName: kube-ca
+      - name: kube-controller-manager
+        secret:
+          defaultMode: 420
+          secretName: kube-controller-manager
+      - name: service-account-keypair
+        secret:
+          defaultMode: 420
+          secretName: service-account-keypair

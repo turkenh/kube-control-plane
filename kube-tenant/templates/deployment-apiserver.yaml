@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tenant-kubernetes-apiserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tenant-kubernetes
+      role: apiserver
+  template:
+    metadata:
+      labels:
+        app: tenant-kubernetes
+        role: apiserver
+      name: tenant-kubernetes-apiserver
+    spec:
+      containers:
+      - args:
+        - --authorization-mode=RBAC
+        - --bind-address=0.0.0.0
+        - --client-ca-file=/etc/creds/kube-ca/tls.crt
+        - --etcd-cafile=/etc/creds/etcd-client-tls/ca.crt
+        - --etcd-certfile=/etc/creds/etcd-client-tls/tls.crt
+        - --etcd-compaction-interval=0
+        - --etcd-keyfile=/etc/creds/etcd-client-tls/tls.key
+        - --etcd-prefix=/$(TENANT_ID)/registry
+        - --etcd-servers=https://etcd.etcd-system:2379
+        - --secure-port=6443
+        - --service-account-key-file=/etc/creds/service-account-keypair/tls.crt
+        - --target-ram-mb=512
+        - --tls-cert-file=/etc/creds/kube-apiserver/tls.crt
+        - --tls-private-key-file=/etc/creds/kube-apiserver/tls.key
+        - --v=2
+        command:
+        - kube-apiserver
+        env:
+        - name: KUBERNETES_SERVICE_HOST
+          value: tenant-kubernetes
+        - name: KUBERNETES_SERVICE_PORT
+          value: "6443"
+        - name: TENANT_ID
+          value: {{ .Values.tenantID | quote }}
+        image: gcr.io/google-containers/kube-apiserver:{{ .Values.kubernetesVersion }}
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 7
+          httpGet:
+            path: /healthz
+            port: 6443
+            scheme: HTTPS
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 15
+        name: tenant-kubernetes-apiserver
+        ports:
+        - containerPort: 6443
+          name: https
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 7
+          httpGet:
+            path: /healthz
+            port: 6443
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 15
+        volumeMounts:
+        - mountPath: /etc/creds/kube-apiserver
+          name: kube-apiserver
+          readOnly: true
+        - mountPath: /etc/creds/kube-ca
+          name: kube-ca
+          readOnly: true
+        - mountPath: /etc/creds/etcd-client-tls
+          name: etcd-client-tls
+          readOnly: true
+        - mountPath: /etc/creds/service-account-keypair
+          name: service-account-keypair
+          readOnly: true
+      volumes:
+      - name: kube-apiserver
+        secret:
+          defaultMode: 420
+          secretName: kube-apiserver
+      - name: kube-ca
+        secret:
+          defaultMode: 420
+          secretName: kube-ca
+      - name: etcd-client-tls
+        secret:
+          defaultMode: 420
+          secretName: etcd-client-tls
+      - name: service-account-keypair
+        secret:
+          defaultMode: 420
+          secretName: service-account-keypair
+

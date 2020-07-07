@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: etcd
+  labels:
+    app: etcd
+spec:
+  selector:
+    matchLabels:
+      app: etcd
+  serviceName: etcd
+  replicas: 1
+  template:
+    metadata:
+      name: etcd
+      labels:
+        app: etcd
+    spec:
+      containers:
+      - name: etcd
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+        ports:
+        - containerPort: 2380
+          name: peer
+        - containerPort: 2379
+          name: client
+        env:
+        - name: ETCD_PEER_AUTO_TLS
+          value: "true"
+        - name: ETCD_CERT_FILE
+          value: "/opt/etcd/certs/client/tls.crt"
+        - name: ETCD_KEY_FILE
+          value: "/opt/etcd/certs/client/tls.key"
+        - name: ETCD_CLIENT_CERT_AUTH
+          value: "true"
+        - name: ETCD_TRUSTED_CA_FILE
+          value: "/opt/etcd/certs/client/ca.crt"
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/run/etcd
+        - name: etcd-client-certs
+          mountPath: /opt/etcd/certs/client/
+          readOnly: true             
+        command:
+          - "/bin/sh"
+          - "-ec"
+          - |
+            exec etcd --name $(hostname) \
+                --listen-peer-urls https://0.0.0.0:2380 \
+                --listen-client-urls https://0.0.0.0:2379 \
+                --data-dir /var/run/etcd/default.etcd \
+                --advertise-client-urls https://$(hostname).etcd:2379
+      volumes:
+      - name: etcd-client-certs
+        secret:
+          secretName: etcd-client-tls
+          defaultMode: 256
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes:
+        - "ReadWriteOnce"
+      resources:
+        requests:
+          storage: 1Gi

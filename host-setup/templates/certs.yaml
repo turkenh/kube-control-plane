@@ -1,0 +1,51 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: etcd-ca
+spec:
+  secretName: etcd-ca
+  duration: 9600h # 400d
+  renewBefore: 8760h # 365d
+  commonName: "etcd"
+  isCA: true
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: etcd-issuer
+spec:
+  ca:
+    secretName: etcd-ca
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: etcd-client-tls
+spec:
+  secretName: etcd-client-tls
+  duration: 9600h # 400d
+  renewBefore: 8760h # 365d
+  commonName: "etcd-client-server"
+  dnsNames:
+    - etcd
+    - etcd.{{ .Release.Namespace }}
+    - etcd.{{ .Release.Namespace }}.svc
+    - etcd.{{ .Release.Namespace }}.svc.cluster.local
+  usages:
+    - server auth
+    - client auth
+  ipAddresses:
+    - 127.0.0.1  
+  issuerRef:
+    name: etcd-issuer
+    kind: ClusterIssuer
