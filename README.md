@@ -1,6 +1,6 @@
 # kube-control-plane
 
-This repository contains demo files used in the OSS + ELC NA 2020 talk: **Kubernetes as a General Purpose Control Plane: Scaling on Kubernetes**
+This repository contains demo files used in the talk: **Kubernetes as a General Purpose Control Plane: Scaling on Kubernetes**
 
 ![demo flow](demo.png "demo")
 
