@@ -1,6 +1,6 @@
 # kube-control-plane
 
-This repository contains demo files used in the talk: **Kubernetes as a General Purpose Control Plane: Scaling on Kubernetes**
+This repository contains demo files used in the talk: [Kubernetes as a General Purpose Control Plane: Scaling on Kubernetes](https://www.youtube.com/watch?v=KEQCyXZ8jm4)
 
 ![demo flow](demo.png "demo")
 
